@@ -7,21 +7,23 @@
     <link rel="apple-touch-icon" href="logo.png">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        :root { --bg: #000; --accent: #00a3ff; --warning: #fc0; --text: #fff; }
+        :root { --bg: #000000; --accent: #00a3ff; --warning: #fc0; --text: #ffffff; }
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         
-        /* FONDO NEGRO ABSOLUTO */
-        body, html { background-color: #000 !important; color: #fff; font-family: -apple-system, sans-serif; height: 100vh; width: 100vw; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+        /* FONDO NEGRO ABSOLUTO OLED */
+        body, html { background-color: #000000 !important; color: var(--text); font-family: -apple-system, sans-serif; height: 100vh; width: 100vw; display: flex; justify-content: center; align-items: center; overflow: hidden; }
         .hidden { display: none !important; }
 
-        .container { background-color: #000; border-radius: 30px; border: 1px solid rgba(255,255,255,0.15); width: 92%; max-width: 360px; overflow: hidden; position: relative; }
+        #splash { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 9999; display: flex; justify-content: center; align-items: center; transition: opacity 0.6s; }
+        
+        .container { background-color: #000000; border-radius: 30px; border: 1px solid rgba(255,255,255,0.15); width: 92%; max-width: 360px; overflow: hidden; position: relative; }
         #map { width: 100%; height: 175px; border-bottom: 1px solid var(--accent); background: #000; }
         .padding { padding: 25px; display: flex; flex-direction: column; align-items: center; }
         
-        input { width: 100%; padding: 16px; margin-bottom: 12px; border-radius: 12px; background: #111; border: 1px solid #333; color: #fff; outline: none; font-size: 16px; }
+        input { width: 100%; padding: 16px; margin-bottom: 12px; border-radius: 12px; background: #111; border: 1px solid #333; color: #fff; outline: none; }
         .btn-main { width: 100%; padding: 16px; background: var(--accent); border: none; border-radius: 12px; color: #fff; font-weight: bold; cursor: pointer; }
         
-        /* ANIMACIONES */
+        /* ONDAS AZULES TIPO GEMINI */
         .viz { display: flex; gap: 4px; height: 30px; align-items: center; margin-bottom: 15px; display: none; }
         .bar { width: 3px; height: 6px; background: var(--accent); animation: wave 0.8s infinite alternate; }
         @keyframes wave { 100% { height: 30px; } }
@@ -31,13 +33,13 @@
 </head>
 <body>
 
-    <div id="splash" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#000; z-index:9999; display:flex; justify-content:center; align-items:center;"><img src="logo.png" style="width:180px;"></div>
+    <div id="splash"><img src="logo.png" style="width:180px;"></div>
 
     <div id="scr-login" class="container">
         <div class="padding">
             <img src="logo.png" style="width:140px; margin-bottom:20px;">
-            <input type="text" id="user" placeholder="Usuario">
-            <input type="password" id="pass" placeholder="Contraseña">
+            <input type="text" id="user" placeholder="Usuario" autocomplete="off" style="width: 100%; padding: 16px; margin-bottom: 12px; border-radius: 12px; background: #111; border: 1px solid #333; color: #fff;">
+            <input type="password" id="pass" placeholder="Contraseña" style="width: 100%; padding: 16px; margin-bottom: 12px; border-radius: 12px; background: #111; border: 1px solid #333; color: #fff;">
             <button onclick="checkLogin()" class="btn-main">ENTRAR AL BÚNKER</button>
         </div>
     </div>
@@ -56,71 +58,72 @@
         <div class="padding">
             <div class="viz" id="v-viz"><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
             <div class="instr">
-                <div style="font-size:0.6rem; color:var(--warning); font-weight:bold; margin-bottom:4px;">CO-PILOTO VINDEX:</div>
-                <div id="i-text" style="font-size: 0.85rem;">Esperando inicio...</div>
+                <div id="i-text" style="font-size: 0.9rem;">Presiona abajo para iniciar el protocolo.</div>
             </div>
             <button id="p-btn" class="btn-main" onclick="startDef()">INICIAR DEFENSA</button>
-            <p style="margin-top:20px; font-size:0.65rem; color:#8b949e; cursor:pointer;" onclick="location.reload()">← REINICIAR BÚNKER</p>
+            <p style="margin-top:20px; font-size:0.65rem; color:#8b949e; cursor:pointer;" onclick="location.reload()">← VOLVER AL MENÚ</p>
         </div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-     // --- PROTOCOLO ENIGMA 9.5 (Fragmentación Inversa) ---
-        // Tu llave codificada: QUl6YVN5QVQybF94OVRSbU9rc1kxR0VmbERHb0dBWjlxeXZJM25J
-        const _m = [
-            "I3nI", "xeXZ", "DGoG", "AZ9q", "lDGo", "1GEf", "ksY1", "9TRm", "bF94", "QVQy", "QUl6YVN5"
-        ];
+        // --- PROTOCOLO ENIGMA CORREGIDO ---
+        // Tu llave codificada en Base64
+        const _e = "QUl6YVN5QVQybF94OVRSbU9rc1kxR0VmbERHb0dBWjlxeXZJM25J"; 
         
-        // Reconstruimos la llave solo cuando se necesita
-        function getK() {
-            // Unimos los pedazos y decodificamos el Base64
-            const raw = _m.reverse().join("");
-            return atob("QUl6YVN5QVQybF94OVRSbU9rc1kxR0VmbERHb0dBWjlxeXZJM25J");
-        }
+        // FIX: Cambiamos a v1beta para evitar el error 404
+        const URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + atob(_e);
 
-        const API_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=" + getK();
-        let map, recognition;
-        setTimeout(() => document.getElementById('splash').style.display='none', 2000);
+        let map, marker, recognition;
+        setTimeout(() => { document.getElementById('splash').style.display = 'none'; }, 2000);
 
         function checkLogin() { if(document.getElementById('user').value === "fundador") show('scr-auth'); }
-        function show(id) { document.querySelectorAll('.container').forEach(c => c.classList.add('hidden')); document.getElementById(id).classList.remove('hidden'); }
+
+        function show(id) { 
+            document.querySelectorAll('.container').forEach(c => c.classList.add('hidden')); 
+            document.getElementById(id).classList.remove('hidden'); 
+        }
+
         function initApp(m) { show('scr-dash'); initMap(); }
 
         function initMap() {
-            if(!map) { map = L.map('map',{zoomControl:false}).setView([19.4326,-99.1332],15); L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map); }
-            navigator.geolocation.getCurrentPosition(p => map.setView([p.coords.latitude, p.coords.longitude],15), null, {enableHighAccuracy:true});
+            if(!map) { 
+                map = L.map('map',{zoomControl:false}).setView([19.4326,-99.1332],15); 
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map); 
+            }
+            navigator.geolocation.getCurrentPosition(p => { 
+                map.setView([p.coords.latitude, p.coords.longitude],15); 
+                if(marker) marker.remove(); marker = L.marker([p.coords.latitude, p.coords.longitude]).addTo(map);
+            }, null, {enableHighAccuracy: true});
         }
 
         async function aiAsk(speech) {
             try {
-                const res = await fetch(API_URL, { 
+                const res = await fetch(URL, { 
                     method: "POST", 
                     headers: {"Content-Type":"application/json"}, 
                     body: JSON.stringify({contents:[{parts:[{text: "Eres abogado experto en México. El oficial dice: "+speech+". Responde en 12 palabras con el Art 16."}]}]}) 
                 });
                 const d = await res.json();
-                if(d.error) {
-                    // Muestra el error exacto en pantalla para debug
-                    document.getElementById('i-text').innerText = "⚠️ Error: " + d.error.code + " - " + d.error.message;
-                } else {
-                    document.getElementById('i-text').innerText = d.candidates[0].content.parts[0].text;
-                }
-            } catch(e) { document.getElementById('i-text').innerText = "❌ Error de red."; }
+                if(d.error) { document.getElementById('i-text').innerText = "⚠️ Error: " + d.error.message; }
+                else { document.getElementById('i-text').innerText = d.candidates[0].content.parts[0].text; }
+            } catch(e) { document.getElementById('i-text').innerText = "❌ Reintenta conexión."; }
         }
 
         function startDef() {
-            document.getElementById('p-btn').innerText = "MONITORIZANDO...";
+            document.getElementById('p-btn').innerText = "VINDEX MONITORIZANDO";
             document.getElementById('v-viz').style.display = 'flex';
-            document.getElementById('i-text').innerText = "Escuchando... Di algo.";
+            document.getElementById('i-text').innerText = "Escuchando oficial...";
+            
             const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
             recognition = new Speech();
             recognition.lang = 'es-MX';
+            recognition.continuous = true;
             recognition.onresult = (e) => {
                 const s = e.results[e.results.length-1][0].transcript;
                 document.getElementById('i-text').innerText = "Analizando voz...";
                 aiAsk(s);
-            }
+            };
             recognition.start();
         }
     </script>
