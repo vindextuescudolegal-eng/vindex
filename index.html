@@ -78,11 +78,11 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         // --- CONFIGURACIÓN ---
-        // PUNTO 1 CORREGIDO: Trampa para evitar desactivación automática
-        const k_part1 = "AIzaSyBUXx4M3";
-        const k_part2 = "AIzaSyChhSSAPXEMe2GQ4aqmVpiZSRF6egBAsfo"; // Tu API key original
-        const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + k_part1 + k_part2;
-
+       // --- CONFIGURACIÓN LIMPIA ---
+// Pegamos la llave NUEVA completa aquí
+const GEMINI_API_KEY = "AIzaSyChhSSAPXEMe2GQ4aqmVpiZSRF6egBAsfo"; 
+const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + GEMINI_API_KEY;
+        
         const puntosRiesgo = [
             {lat: 19.4326, lng: -99.1332, msg: "🛑 OPERATIVO: Zócalo"},
             {lat: 19.3321, lng: -99.1923, msg: "👮 RETÉN: Insurgentes Sur"}
@@ -199,3 +199,4 @@
     </script>
 </body>
 </html>
+
