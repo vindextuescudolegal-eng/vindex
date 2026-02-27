@@ -7,16 +7,16 @@
     <link rel="apple-touch-icon" href="logo.png">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        :root { --bg: #000000; --accent: #00a3ff; --warning: #fc0; --text: #fff; }
+        :root { --bg: #000000; --accent: #00a3ff; --warning: #fc0; --text: #ffffff; --gray: #8b949e; }
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         
-        /* FIX: Fondo negro y evita que las pantallas se amontonen */
+        /* FONDO NEGRO ABSOLUTO (OLED Optimized) */
         body, html { background-color: #000000 !important; color: var(--text); font-family: -apple-system, sans-serif; height: 100vh; width: 100vw; display: flex; justify-content: center; align-items: center; overflow: hidden; }
         
-        /* Clase crítica para ocultar pantallas */
+        /* BLOQUEO DE INTERFAZ AMONTONADA */
         .hidden { display: none !important; }
 
-        #splash { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 9999; display: flex; justify-content: center; align-items: center; transition: 0.6s; }
+        #splash { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 9999; display: flex; justify-content: center; align-items: center; transition: opacity 0.6s; }
         .splash-logo { width: 180px; opacity: 0; animation: fade 1.5s forwards; }
         @keyframes fade { 100% { opacity: 1; transform: scale(1.05); } }
 
@@ -27,9 +27,10 @@
         input { width: 100%; padding: 16px; margin-bottom: 12px; border-radius: 12px; background: #111; border: 1px solid #333; color: #fff; font-size: 16px; outline: none; }
         .btn-main { width: 100%; padding: 16px; background: var(--accent); border: none; border-radius: 12px; color: #fff; font-weight: bold; cursor: pointer; }
         
-        .opt { width: 100%; background: rgba(255,255,255,0.05); padding: 16px; border-radius: 12px; margin: 6px 0; cursor: pointer; text-align: left; }
-        .instr { background: rgba(255, 204, 0, 0.05); border: 1px solid var(--warning); padding: 15px; border-radius: 15px; margin-bottom: 15px; width: 100%; min-height: 90px; text-align: left; }
-        
+        .opt { width: 100%; background: rgba(255,255,255,0.05); padding: 16px; border-radius: 12px; margin: 6px 0; cursor: pointer; text-align: left; transition: 0.2s; }
+        .opt:active { background: rgba(0, 163, 255, 0.2); }
+
+        .instr { background: rgba(255, 204, 0, 0.05); border: 1px solid var(--warning); padding: 15px; border-radius: 15px; margin-bottom: 15px; width: 100%; min-height: 95px; text-align: left; }
         .app-logo { width: 140px; height: auto; margin-bottom: 20px; object-fit: contain; }
     </style>
 </head>
@@ -50,7 +51,7 @@
 
     <div id="scr-auth" class="container hidden">
         <div class="padding">
-            <h3 style="margin-bottom:15px;">Protocolo Activo</h3>
+            <h3 style="margin-bottom:15px; font-weight: 400;">Protocolo Activo</h3>
             <div class="opt" onclick="initApp('Tránsito')">👮   Tránsito CDMX</div>
             <div class="opt" onclick="initApp('Preventiva')">🛡️   Policía Preventiva</div>
             <div class="opt" onclick="initApp('Guardia Nacional')">🇲🇽   Guardia Nacional</div>
@@ -62,22 +63,30 @@
     <div id="scr-dash" class="container hidden">
         <div id="map"></div>
         <div class="padding">
-            <div class="instr"><div style="font-size:0.6rem; color:var(--warning); font-weight:bold;">CO-PILOTO VINDEX:</div><div id="i-text" style="font-size: 0.9rem;">Presiona abajo para iniciar.</div></div>
+            <div class="instr">
+                <div style="font-size:0.6rem; color:var(--warning); font-weight:bold; margin-bottom: 4px;">CO-PILOTO VINDEX:</div>
+                <div id="i-text" style="font-size: 0.9rem; line-height: 1.3;">Presiona abajo para iniciar el protocolo.</div>
+            </div>
             <button id="p-btn" class="btn-main" onclick="startDef()">INICIAR DEFENSA</button>
-            <p style="margin-top:20px; font-size:0.6rem; color:#8b949e; cursor:pointer;" onclick="backToMenu()">← VOLVER AL MENÚ</p>
+            <p style="margin-top:20px; font-size:0.65rem; color:var(--gray); cursor:pointer;" onclick="backToMenu()">← VOLVER AL MENÚ</p>
         </div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // --- CONEXIÓN IA CORREGIDA ---
+        // --- CONFIGURACIÓN DE IA (AUDITADA) ---
         const API_KEY = "AIzaSyChhSSAPXEMe2GQ4aqmVpiZSRF6egBAsfo"; 
-        // Usamos la versión v1 (estable) y concatenación simple para evitar errores de comillas
+        // FIX: Cambiamos a v1 (estable) y evitamos errores de comillas
         const API_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=" + API_KEY;
 
         let map, marker, recognition, autoridad = "";
 
-        setTimeout(() => { document.getElementById('splash').style.display = 'none'; }, 2500);
+        // Desvanecimiento del Splash
+        setTimeout(() => { 
+            const s = document.getElementById('splash');
+            s.style.opacity = '0';
+            setTimeout(() => s.style.display = 'none', 600); 
+        }, 2500);
 
         document.getElementById('login-form').addEventListener('submit', (e) => {
             e.preventDefault();
@@ -85,7 +94,9 @@
         });
 
         async function aiAsk(speech, type) {
-            const prompt = `Eres abogado experto en México. Analiza si el oficial de ${type} es ilegal. Oficial dice: "${speech}". Responde en máx 12 palabras con el Art 16.`;
+            if (!speech || speech.trim().length < 2) return;
+            const prompt = `Eres un abogado experto en derechos humanos en México. El usuario está ante un oficial de ${type}. El oficial dice: "${speech}". Si es ilegal o grosero, dime qué debe responder el usuario usando el Art 16 constitucional. Sé muy breve (máx 12 palabras).`;
+            
             try {
                 const res = await fetch(API_URL, { 
                     method: "POST", 
@@ -93,44 +104,80 @@
                     body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) 
                 });
                 const d = await res.json();
-                if (d.error) { document.getElementById('i-text').innerText = "⚠️ Error: " + d.error.message; return; }
-                document.getElementById('i-text').innerText = d.candidates[0].content.parts[0].text;
-            } catch(e) { document.getElementById('i-text').innerText = "❌ Error de conexión."; }
+                
+                //
+                if (d.error) { 
+                    document.getElementById('i-text').innerText = "⚠️ Error de IA: " + d.error.message; 
+                    return; 
+                }
+                
+                if (d.candidates && d.candidates[0].content) {
+                    document.getElementById('i-text').innerText = d.candidates[0].content.parts[0].text;
+                }
+            } catch(e) { 
+                document.getElementById('i-text').innerText = "❌ Error de conexión con el búnker."; 
+            }
         }
 
-        function initApp(m) { autoridad = m; show('scr-dash'); initMap(); }
+        function initApp(m) { 
+            autoridad = m; 
+            show('scr-dash'); 
+            const isRisk = (m === 'Mapa Riesgo');
+            document.getElementById('p-btn').classList.toggle('hidden', isRisk);
+            initMap(); 
+        }
+
         function show(id) { 
-            // Ocultamos todos primero para evitar que se amontonen
+            // FIX: Limpiamos todas las pantallas antes de mostrar la nueva
             document.querySelectorAll('.container').forEach(c => c.classList.add('hidden')); 
             document.getElementById(id).classList.remove('hidden'); 
         }
 
-        function backToMenu() { if(recognition) recognition.stop(); show('scr-auth'); }
+        function backToMenu() { 
+            if(recognition) recognition.stop(); 
+            document.getElementById('p-btn').innerText = "INICIAR DEFENSA";
+            document.getElementById('i-text').innerText = "Presiona abajo para iniciar el protocolo.";
+            show('scr-auth'); 
+        }
 
         function initMap() {
-            if(!map) { map = L.map('map',{zoomControl:false}).setView([19.4326,-99.1332],12); L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map); }
+            if(!map) { 
+                map = L.map('map',{zoomControl:false}).setView([19.4326,-99.1332],12); 
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map); 
+            }
             navigator.geolocation.getCurrentPosition(p => { 
-                map.setView([p.coords.latitude, p.coords.longitude],15); 
-                if(marker) marker.remove(); marker = L.marker([p.coords.latitude, p.coords.longitude]).addTo(map); 
-            });
+                const { latitude, longitude } = p.coords;
+                map.setView([latitude, longitude],15); 
+                if(marker) marker.remove(); 
+                marker = L.marker([latitude, longitude]).addTo(map); 
+            }, null, {enableHighAccuracy: true});
         }
 
         function startDef() {
-            document.getElementById('p-btn').innerText = "MONITORIZANDO...";
-            document.getElementById('i-text').innerText = "Escuchando oficial...";
+            document.getElementById('p-btn').innerText = "VINDEX MONITORIZANDO";
+            document.getElementById('i-text').innerText = "Escuchando oficial... Mantén la calma.";
             startListen();
         }
 
         function startListen() {
             const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if(!Speech) return alert("Tu navegador no soporta reconocimiento de voz.");
+            
             recognition = new Speech();
             recognition.lang = 'es-MX';
             recognition.continuous = true;
+            
             recognition.onresult = (e) => {
                 const s = e.results[e.results.length-1][0].transcript;
-                document.getElementById('i-text').innerText = "Analizando voz...";
+                document.getElementById('i-text').innerText = "Analizando: " + s + "...";
                 aiAsk(s, autoridad);
             };
+
+            recognition.onerror = (err) => {
+                console.error("Error de mic:", err.error);
+                if(err.error === 'not-allowed') alert("Por favor, permite el acceso al micrófono en Safari.");
+            };
+
             recognition.start();
         }
     </script>
