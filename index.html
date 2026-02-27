@@ -77,11 +77,11 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // --- CONFIGURACIÓN ---
-       // --- CONFIGURACIÓN LIMPIA ---
-// Pegamos la llave NUEVA completa aquí
+
+       // --- CONFIGURACIÓN LIMPIA VINDEX ---
+// Usamos solo UNA variable con tu llave completa
 const GEMINI_API_KEY = "AIzaSyChhSSAPXEMe2GQ4aqmVpiZSRF6egBAsfo"; 
-const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + GEMINI_API_KEY;
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
         
         const puntosRiesgo = [
             {lat: 19.4326, lng: -99.1332, msg: "🛑 OPERATIVO: Zócalo"},
@@ -199,4 +199,5 @@ const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemi
     </script>
 </body>
 </html>
+
 
