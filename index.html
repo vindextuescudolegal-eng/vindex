@@ -10,9 +10,12 @@
         :root { --bg: #000000; --accent: #00a3ff; --warning: #fc0; --text: #fff; }
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         
-        /* FONDO NEGRO ABSOLUTO */
-        body, html { background-color: #000000 !important; color: var(--text); font-family: -apple-system, sans-serif; height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+        /* FIX: Fondo negro y evita que las pantallas se amontonen */
+        body, html { background-color: #000000 !important; color: var(--text); font-family: -apple-system, sans-serif; height: 100vh; width: 100vw; display: flex; justify-content: center; align-items: center; overflow: hidden; }
         
+        /* Clase crítica para ocultar pantallas */
+        .hidden { display: none !important; }
+
         #splash { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 9999; display: flex; justify-content: center; align-items: center; transition: 0.6s; }
         .splash-logo { width: 180px; opacity: 0; animation: fade 1.5s forwards; }
         @keyframes fade { 100% { opacity: 1; transform: scale(1.05); } }
@@ -25,9 +28,8 @@
         .btn-main { width: 100%; padding: 16px; background: var(--accent); border: none; border-radius: 12px; color: #fff; font-weight: bold; cursor: pointer; }
         
         .opt { width: 100%; background: rgba(255,255,255,0.05); padding: 16px; border-radius: 12px; margin: 6px 0; cursor: pointer; text-align: left; }
-        .instr { background: rgba(255, 204, 0, 0.05); border: 1px solid var(--warning); padding: 15px; border-radius: 15px; margin-bottom: 15px; width: 100%; min-height: 90px; }
+        .instr { background: rgba(255, 204, 0, 0.05); border: 1px solid var(--warning); padding: 15px; border-radius: 15px; margin-bottom: 15px; width: 100%; min-height: 90px; text-align: left; }
         
-        /* AJUSTE DE LOGO */
         .app-logo { width: 140px; height: auto; margin-bottom: 20px; object-fit: contain; }
     </style>
 </head>
@@ -62,14 +64,15 @@
         <div class="padding">
             <div class="instr"><div style="font-size:0.6rem; color:var(--warning); font-weight:bold;">CO-PILOTO VINDEX:</div><div id="i-text" style="font-size: 0.9rem;">Presiona abajo para iniciar.</div></div>
             <button id="p-btn" class="btn-main" onclick="startDef()">INICIAR DEFENSA</button>
-            <p style="margin-top:20px; font-size:0.6rem; color:#8b949e; cursor:pointer;" onclick="location.reload()">← VOLVER AL MENÚ</p>
+            <p style="margin-top:20px; font-size:0.6rem; color:#8b949e; cursor:pointer;" onclick="backToMenu()">← VOLVER AL MENÚ</p>
         </div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // --- CAMBIO A V1 (ESTABLE) ---
+        // --- CONEXIÓN IA CORREGIDA ---
         const API_KEY = "AIzaSyChhSSAPXEMe2GQ4aqmVpiZSRF6egBAsfo"; 
+        // Usamos la versión v1 (estable) y concatenación simple para evitar errores de comillas
         const API_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=" + API_KEY;
 
         let map, marker, recognition, autoridad = "";
@@ -90,14 +93,19 @@
                     body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) 
                 });
                 const d = await res.json();
-                //
                 if (d.error) { document.getElementById('i-text').innerText = "⚠️ Error: " + d.error.message; return; }
                 document.getElementById('i-text').innerText = d.candidates[0].content.parts[0].text;
-            } catch(e) { document.getElementById('i-text').innerText = "❌ Error de búnker."; }
+            } catch(e) { document.getElementById('i-text').innerText = "❌ Error de conexión."; }
         }
 
         function initApp(m) { autoridad = m; show('scr-dash'); initMap(); }
-        function show(id) { document.querySelectorAll('.container').forEach(c => c.classList.add('hidden')); document.getElementById(id).classList.remove('hidden'); }
+        function show(id) { 
+            // Ocultamos todos primero para evitar que se amontonen
+            document.querySelectorAll('.container').forEach(c => c.classList.add('hidden')); 
+            document.getElementById(id).classList.remove('hidden'); 
+        }
+
+        function backToMenu() { if(recognition) recognition.stop(); show('scr-auth'); }
 
         function initMap() {
             if(!map) { map = L.map('map',{zoomControl:false}).setView([19.4326,-99.1332],12); L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map); }
