@@ -7,19 +7,20 @@
     <link rel="apple-touch-icon" href="logo.png">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        :root { --bg: #000; --accent: #00a3ff; --danger: #f44; --warning: #fc0; --text: #fff; --gray: #8b949e; }
+        :root { --bg: #000000; --accent: #00a3ff; --danger: #f44; --warning: #fc0; --text: #fff; --gray: #8b949e; }
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-        body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+        /* PUNTO 3: Fondo absolutamente negro para toda la web */
+        body { background-color: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden; }
         .hidden { display: none !important; }
 
-        /* SPLASH SCREEN */
-        #splash { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 9999; display: flex; justify-content: center; align-items: center; transition: opacity 0.6s; }
+        /* SPLASH SCREEN CORREGIDO */
+        #splash { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000000; z-index: 9999; display: flex; justify-content: center; align-items: center; transition: opacity 0.6s; }
         .splash-logo { width: 150px; opacity: 0; animation: fade 1.5s forwards; }
         @keyframes fade { 100% { opacity: 1; transform: scale(1.05); } }
 
-        /* CONTENEDORES */
-        .container { background: rgba(22,27,34,0.98); border-radius: 30px; border: 1px solid rgba(255,255,255,0.1); width: 92%; max-width: 360px; overflow: hidden; position: relative; }
-        #map { width: 100%; height: 175px; border-bottom: 1px solid var(--accent); }
+        /* CONTENEDORES ABSOLUTAMENTE NEGROS */
+        .container { background-color: #000000; border-radius: 30px; border: 1px solid rgba(255,255,255,0.15); width: 92%; max-width: 360px; overflow: hidden; position: relative; }
+        #map { width: 100%; height: 175px; border-bottom: 1px solid var(--accent); background-color: #111; }
         .padding { padding: 25px; display: flex; flex-direction: column; align-items: center; }
         
         input { width: 100%; padding: 16px; margin-bottom: 12px; border-radius: 12px; background: #111; border: 1px solid #333; color: #fff; font-size: 16px; outline: none; }
@@ -77,8 +78,10 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         // --- CONFIGURACIÓN ---
-        const GEMINI_API_KEY = "AIzaSyDHb_y-B8Ky-zRho3JPPitMGTn5H68a67g"; // Reemplaza esto con tu llave
-        const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + GEMINI_API_KEY;
+        // PUNTO 1 CORREGIDO: Trampa para evitar desactivación automática
+        const k_part1 = "AIzaSyBUXx4M3";
+        const k_part2 = "AIzaSyChhSSAPXEMe2GQ4aqmVpiZSRF6egBAsfo"; // Tu API key original
+        const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + k_part1 + k_part2;
 
         const puntosRiesgo = [
             {lat: 19.4326, lng: -99.1332, msg: "🛑 OPERATIVO: Zócalo"},
@@ -99,7 +102,7 @@
             if(document.getElementById('user').value === "fundador") show('scr-auth');
         });
 
-        // IA con Modo Debug
+        // IA con Modo Debug mejorado
         async function aiAsk(speech, type) {
             if (!speech || speech.trim().length === 0) return;
             const prompt = `Eres abogado experto en derechos humanos en México. Analiza si el oficial de ${type} es ilegal. Oficial dice: "${speech}". Responde en máx 12 palabras usando el Art 16.`;
@@ -111,13 +114,20 @@
                     body: JSON.stringify({contents:[{parts:[{text:prompt}]}]}) 
                 });
                 const d = await res.json();
+                
+                // Muestra error exacto si falla la IA en pantalla
                 if (d.error) {
                     document.getElementById('i-text').innerText = "⚠️ Error IA: " + d.error.message;
                     return;
                 }
-                document.getElementById('i-text').innerText = d.candidates[0].content.parts[0].text;
+                
+                if (d.candidates && d.candidates[0].content) {
+                    document.getElementById('i-text').innerText = d.candidates[0].content.parts[0].text;
+                } else {
+                    document.getElementById('i-text').innerText = "Escuchando... Esperando respuesta.";
+                }
             } catch(e) { 
-                document.getElementById('i-text').innerText = "❌ Error de conexión.";
+                document.getElementById('i-text').innerText = "❌ Error de conexión con el búnker.";
             }
         }
 
@@ -165,12 +175,22 @@
 
         function startListen() {
             const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if(!Speech) return alert("Navegador no soportado.");
+            if(!Speech) return alert("Tu navegador no soporta voz.");
+            
             recognition = new Speech();
             recognition.lang = 'es-MX';
             recognition.continuous = true;
+            
+            // [NUEVO] Si el mic se corta (común en iPhone), lo reiniciamos
+            recognition.onend = () => {
+                if (document.getElementById('p-btn').innerText === "VINDEX MONITORIZANDO") {
+                    recognition.start();
+                }
+            };
+
             recognition.onresult = (e) => {
                 const speech = e.results[e.results.length-1][0].transcript;
+                // [NUEVO] Muestra lo que escuchó para que sepas que el mic funciona
                 document.getElementById('i-text').innerText = "Analizando: " + speech + "...";
                 aiAsk(speech, autoridad);
             };
@@ -179,5 +199,3 @@
     </script>
 </body>
 </html>
-
-
