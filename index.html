@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <link rel="apple-touch-icon" href="logo.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Vindex - Tu Escudo Legal</title>
+    <link rel="apple-touch-icon" href="logo.png">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         :root { --bg: #000; --accent: #00a3ff; --danger: #f44; --warning: #fc0; --text: #fff; --gray: #8b949e; }
@@ -12,7 +12,7 @@
         body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden; }
         .hidden { display: none !important; }
 
-        /* SPLASH SCREEN CORREGIDO */
+        /* SPLASH SCREEN */
         #splash { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 9999; display: flex; justify-content: center; align-items: center; transition: opacity 0.6s; }
         .splash-logo { width: 150px; opacity: 0; animation: fade 1.5s forwards; }
         @keyframes fade { 100% { opacity: 1; transform: scale(1.05); } }
@@ -33,7 +33,7 @@
         .viz { display: flex; gap: 4px; height: 30px; align-items: center; margin-bottom: 15px; display: none; }
         .bar { width: 3px; height: 6px; background: var(--accent); animation: wave 0.8s infinite alternate; }
         @keyframes wave { 100% { height: 30px; } }
-        .instr { background: rgba(255,204,0,0.1); border: 1px solid var(--warning); padding: 15px; border-radius: 15px; margin-bottom: 15px; width: 100%; min-height: 90px; }
+        .instr { background: rgba(255,204,0,0.1); border: 1px solid var(--warning); padding: 15px; border-radius: 15px; margin-bottom: 15px; width: 100%; min-height: 90px; text-align: left; }
     </style>
 </head>
 <body>
@@ -68,7 +68,7 @@
         <div class="v-glow" id="v-glow"></div>
         <div class="padding">
             <div class="viz" id="v-viz"><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
-            <div class="instr"><div style="font-size:0.6rem; color:var(--warning); font-weight:bold;">CO-PILOTO VINDEX:</div><div id="i-text">Presiona abajo para iniciar.</div></div>
+            <div class="instr"><div style="font-size:0.6rem; color:var(--warning); font-weight:bold;">CO-PILOTO VINDEX:</div><div id="i-text" style="font-size: 0.9rem;">Presiona abajo para iniciar.</div></div>
             <button id="p-btn" class="btn-main" onclick="startDef()">INICIAR DEFENSA</button>
             <p style="margin-top:20px; font-size:0.6rem; color:var(--gray); cursor:pointer;" onclick="backToMenu()">← VOLVER AL MENÚ</p>
         </div>
@@ -76,7 +76,8 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const GEMINI_API_KEY = "AIzaSyBUXx4M3CtazzO60bYzNKg22VzndVg5e7g"; 
+        // --- CONFIGURACIÓN ---
+        const GEMINI_API_KEY = "TU_API_KEY_AQUÍ"; // Reemplaza esto con tu llave
         const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + GEMINI_API_KEY;
 
         const puntosRiesgo = [
@@ -86,7 +87,7 @@
 
         let map, marker, recognition, autoridad = "";
 
-        // FIX SPLASH: Desaparece por completo para liberar el teclado
+        // Splash Fix
         setTimeout(() => {
             const s = document.getElementById('splash');
             s.style.opacity = '0';
@@ -98,13 +99,26 @@
             if(document.getElementById('user').value === "fundador") show('scr-auth');
         });
 
+        // IA con Modo Debug
         async function aiAsk(speech, type) {
-            const prompt = `Eres abogado experto en derechos humanos en México. Analiza si el oficial de ${type} es grosero o ilegal. Responde en máx 12 palabras qué debe decir el usuario usando el Art 16. Oficial dice: "${speech}"`;
+            if (!speech || speech.trim().length === 0) return;
+            const prompt = `Eres abogado experto en derechos humanos en México. Analiza si el oficial de ${type} es ilegal. Oficial dice: "${speech}". Responde en máx 12 palabras usando el Art 16.`;
+            
             try {
-                const res = await fetch(GEMINI_URL, { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({contents:[{parts:[{text:prompt}]}]}) });
+                const res = await fetch(GEMINI_URL, { 
+                    method: "POST", 
+                    headers: {"Content-Type":"application/json"}, 
+                    body: JSON.stringify({contents:[{parts:[{text:prompt}]}]}) 
+                });
                 const d = await res.json();
+                if (d.error) {
+                    document.getElementById('i-text').innerText = "⚠️ Error IA: " + d.error.message;
+                    return;
+                }
                 document.getElementById('i-text').innerText = d.candidates[0].content.parts[0].text;
-            } catch(e) { console.error(e); }
+            } catch(e) { 
+                document.getElementById('i-text').innerText = "❌ Error de conexión.";
+            }
         }
 
         function initApp(mode) { 
@@ -117,7 +131,6 @@
 
         function show(id) { document.querySelectorAll('.container').forEach(c => c.classList.add('hidden')); document.getElementById(id).classList.remove('hidden'); }
 
-        // FIX: VOLVER AL MENÚ SIN REFRESCAR
         function backToMenu() {
             if (recognition) recognition.stop();
             document.getElementById('p-btn').innerText = "INICIAR DEFENSA";
@@ -156,10 +169,13 @@
             recognition = new Speech();
             recognition.lang = 'es-MX';
             recognition.continuous = true;
-            recognition.onresult = (e) => aiAsk(e.results[e.results.length-1][0].transcript, autoridad);
+            recognition.onresult = (e) => {
+                const speech = e.results[e.results.length-1][0].transcript;
+                document.getElementById('i-text').innerText = "Analizando: " + speech + "...";
+                aiAsk(speech, autoridad);
+            };
             recognition.start();
         }
     </script>
 </body>
 </html>
-
