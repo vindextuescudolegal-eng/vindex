@@ -7,27 +7,26 @@
     <link rel="apple-touch-icon" href="logo.png">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        :root { --bg: #000000; --accent: #00a3ff; --danger: #f44; --warning: #fc0; --text: #fff; --gray: #8b949e; }
+        :root { --bg: #000000; --accent: #00a3ff; --warning: #fc0; --text: #fff; --gray: #8b949e; }
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         
-        /* FONDO NEGRO ABSOLUTO */
+        /* */
         body, html { background-color: #000000 !important; color: var(--text); font-family: -apple-system, sans-serif; height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden; }
         .hidden { display: none !important; }
 
-        #splash { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000000; z-index: 9999; display: flex; justify-content: center; align-items: center; transition: opacity 0.6s; }
+        #splash { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 9999; display: flex; justify-content: center; align-items: center; transition: 0.6s; }
         .splash-logo { width: 180px; opacity: 0; animation: fade 1.5s forwards; }
         @keyframes fade { 100% { opacity: 1; transform: scale(1.05); } }
 
-        .container { background-color: #000000; border-radius: 30px; border: 1px solid rgba(255,255,255,0.15); width: 92%; max-width: 360px; overflow: hidden; position: relative; }
-        #map { width: 100%; height: 175px; border-bottom: 1px solid var(--accent); background-color: #050505; }
+        /* */
+        .container { background-color: #000; border-radius: 30px; border: 1px solid rgba(255,255,255,0.15); width: 92%; max-width: 360px; overflow: hidden; position: relative; }
+        #map { width: 100%; height: 175px; border-bottom: 1px solid var(--accent); background: #050505; }
         .padding { padding: 25px; display: flex; flex-direction: column; align-items: center; }
         
         input { width: 100%; padding: 16px; margin-bottom: 12px; border-radius: 12px; background: #111; border: 1px solid #333; color: #fff; font-size: 16px; outline: none; }
         .btn-main { width: 100%; padding: 16px; background: var(--accent); border: none; border-radius: 12px; color: #fff; font-weight: bold; cursor: pointer; }
         
         .opt { width: 100%; background: rgba(255,255,255,0.05); padding: 16px; border-radius: 12px; margin: 6px 0; cursor: pointer; text-align: left; }
-        
-        /* IA VISUALS */
         .v-glow { position: absolute; bottom: -100px; width: 140%; height: 300px; background: radial-gradient(ellipse at center, rgba(0, 163, 255, 0.2) 0%, rgba(0,0,0,0) 70%); filter: blur(40px); display: none; pointer-events: none; }
         .viz { display: flex; gap: 4px; height: 30px; align-items: center; margin-bottom: 15px; display: none; }
         .bar { width: 3px; height: 6px; background: var(--accent); animation: wave 0.8s infinite alternate; }
@@ -75,29 +74,16 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // --- CONFIGURACIÓN CORREGIDA ---
+        // --- CONFIGURACIÓN ESTABLE ---
         const GEMINI_API_KEY = "AIzaSyChhSSAPXEMe2GQ4aqmVpiZSRF6egBAsfo"; 
-        // CORRECCIÓN: Usamos concatenación simple (+) para evitar errores de comillas
-        const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + GEMINI_API_KEY;
-
-        const puntosRiesgo = [
-            {lat: 19.4326, lng: -99.1332, msg: "🛑 OPERATIVO: Zócalo"},
-            {lat: 19.3321, lng: -99.1923, msg: "👮 RETÉN: Insurgentes Sur"}
-        ];
+        //
+        const GEMINI_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=" + GEMINI_API_KEY;
 
         let map, marker, recognition, autoridad = "";
 
-        // Splash Fix
-        setTimeout(() => {
-            const s = document.getElementById('splash');
-            s.style.opacity = '0';
-            setTimeout(() => s.style.display = 'none', 600);
-        }, 2500);
+        setTimeout(() => { const s = document.getElementById('splash'); s.style.opacity = '0'; setTimeout(() => s.style.display = 'none', 600); }, 2500);
 
-        document.getElementById('login-form').addEventListener('submit', (e) => {
-            e.preventDefault();
-            if(document.getElementById('user').value === "fundador") show('scr-auth');
-        });
+        document.getElementById('login-form').addEventListener('submit', (e) => { e.preventDefault(); if(document.getElementById('user').value === "fundador") show('scr-auth'); });
 
         async function aiAsk(speech, type) {
             if (!speech || speech.trim().length === 0) return;
@@ -107,54 +93,32 @@
                 const res = await fetch(GEMINI_URL, { 
                     method: "POST", 
                     headers: {"Content-Type":"application/json"}, 
-                    body: JSON.stringify({contents:[{parts:[{text:prompt}]}]}) 
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        //
+                        safetySettings: [
+                            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+                            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+                            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+                            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+                        ]
+                    }) 
                 });
                 const d = await res.json();
-                
-                if (d.error) {
-                    document.getElementById('i-text').innerText = "⚠️ Error IA: " + d.error.message;
-                    return;
-                }
-                
-                if (d.candidates && d.candidates[0].content) {
-                    document.getElementById('i-text').innerText = d.candidates[0].content.parts[0].text;
-                }
-            } catch(e) { 
-                document.getElementById('i-text').innerText = "❌ Error de conexión.";
-            }
+                if (d.error) { document.getElementById('i-text').innerText = "⚠️ Error: " + d.error.message; return; }
+                if (d.candidates) document.getElementById('i-text').innerText = d.candidates[0].content.parts[0].text;
+            } catch(e) { document.getElementById('i-text').innerText = "❌ Error de conexión."; }
         }
 
-        function initApp(mode) { 
-            autoridad = mode; 
-            show('scr-dash'); 
-            const isRisk = (mode==='Mapa Riesgo'); 
-            document.getElementById('p-btn').classList.toggle('hidden', isRisk); 
-            initMap(isRisk); 
-        }
-
+        function initApp(m) { autoridad = m; show('scr-dash'); initMap(m==='Mapa Riesgo'); }
         function show(id) { document.querySelectorAll('.container').forEach(c => c.classList.add('hidden')); document.getElementById(id).classList.remove('hidden'); }
+        function backToMenu() { if(recognition) recognition.stop(); document.getElementById('p-btn').innerText = "INICIAR DEFENSA"; show('scr-auth'); }
 
-        function backToMenu() {
-            if (recognition) recognition.stop();
-            document.getElementById('p-btn').innerText = "INICIAR DEFENSA";
-            document.getElementById('v-viz').style.display = 'none';
-            document.getElementById('v-glow').style.display = 'none';
-            document.getElementById('i-text').innerText = "Presiona abajo para iniciar.";
-            show('scr-auth');
-        }
-
-        function initMap(withPoints) {
-            if(!map) { 
-                map = L.map('map',{zoomControl:false}).setView([19.4326,-99.1332],12); 
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map); 
-            }
-            if(withPoints) {
-                puntosRiesgo.forEach(p => L.circle([p.lat, p.lng], {color:'red', fillColor:'#f03', fillOpacity:0.4, radius:400}).addTo(map).bindPopup(p.msg));
-            }
+        function initMap(wp) {
+            if(!map) { map = L.map('map',{zoomControl:false}).setView([19.4326,-99.1332],12); L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map); }
             navigator.geolocation.getCurrentPosition(p => { 
                 map.setView([p.coords.latitude, p.coords.longitude],15); 
-                if(marker) marker.remove(); 
-                marker = L.marker([p.coords.latitude, p.coords.longitude]).addTo(map); 
+                if(marker) marker.remove(); marker = L.marker([p.coords.latitude, p.coords.longitude]).addTo(map); 
             }, null, {enableHighAccuracy: true});
         }
 
@@ -168,14 +132,13 @@
 
         function startListen() {
             const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if(!Speech) return alert("Navegador no soportado.");
             recognition = new Speech();
             recognition.lang = 'es-MX';
             recognition.continuous = true;
             recognition.onresult = (e) => {
-                const speech = e.results[e.results.length-1][0].transcript;
-                document.getElementById('i-text').innerText = "Analizando: " + speech + "...";
-                aiAsk(speech, autoridad);
+                const s = e.results[e.results.length-1][0].transcript;
+                document.getElementById('i-text').innerText = "Analizando: " + s + "...";
+                aiAsk(s, autoridad);
             };
             recognition.start();
         }
