@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vindex - Tu Escudo Legal</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root {
+            --bg: #000000;
+            --glass: rgba(22, 27, 34, 0.98);
+            --accent: #00a3ff;
+            --danger: #ff4444;
+            --warning: #ffcc00;
+            --text: #ffffff;
+            --gray: #8b949e;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+        .hidden { display: none !important; }
+
+        /* SPLASH SCREEN */
+        #splash-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 9999; display: flex; justify-content: center; align-items: center;
+            flex-direction: column; transition: opacity 0.6s ease-out; pointer-events: none;
+        }
+        .splash-logo { width: 150px; opacity: 0; transform: scale(0.9); animation: vindexFadeIn 1.2s forwards ease-in-out; }
+        @keyframes vindexFadeIn { 100% { opacity: 1; transform: scale(1); } }
+        .splash-text { color: var(--accent); font-size: 0.7rem; letter-spacing: 3px; margin-top: 15px; opacity: 0; animation: vindexFadeIn 1s forwards 0.5s; }
+        .splash-hidden { opacity: 0; visibility: hidden; }
+
+        /* CONTENEDOR MAESTRO */
+        .app-container { 
+            background: var(--glass); border-radius: 30px; border: 1px solid rgba(255,255,255,0.1); 
+            width: 92%; max-width: 360px; z-index: 10; overflow: hidden; display: flex; flex-direction: column; align-items: center; position: relative;
+        }
+
+        /* GLOW GEMINI */
+        .v-glow { position: absolute; bottom: -120px; width: 140%; height: 350px; background: radial-gradient(ellipse at center, rgba(0, 163, 255, 0.25) 0%, rgba(0, 0, 0, 0) 70%); filter: blur(50px); display: none; pointer-events: none; }
+
+        #map { width: 100%; height: 165px; background: #111; border-bottom: 1px solid var(--accent); }
+        .padding-box { padding: 25px; width: 100%; display: flex; flex-direction: column; align-items: center; }
+        .app-logo { width: 150px; height: auto; margin-bottom: 25px; }
+
+        input { width: 100%; padding: 15px; margin: 8px 0; background: #111; border: 1px solid #333; border-radius: 12px; color: white; font-size: 16px; outline: none; }
+        .btn-main { width: 100%; padding: 16px; background: var(--accent); border: none; border-radius: 12px; color: white; font-weight: bold; cursor: pointer; }
+        
+        /* OPCIONES DE MENÚ */
+        .menu-opt { width:100%; background:rgba(255,255,255,0.05); padding: 16px; border-radius:12px; margin: 5px 0; cursor:pointer; text-align:left; border: 1px solid transparent; transition: 0.2s; }
+        .menu-opt:hover { border-color: var(--accent); background: rgba(0, 163, 255, 0.1); }
+        
+        /* ONDAS GEMINI */
+        .viz { display: flex; height: 30px; align-items: center; gap: 4px; margin-bottom: 15px; display: none; }
+        .bar { width: 3px; height: 6px; background: var(--accent); border-radius: 10px; animation: wave 0.8s infinite alternate; }
+        @keyframes wave { 0% { height: 6px; } 100% { height: 30px; } }
+
+        /* REC BAR */
+        .rec-ui { display: flex; align-items: center; gap: 8px; margin-bottom: 15px; opacity: 0; }
+        .rec-dot { width: 10px; height: 10px; background: var(--danger); border-radius: 50%; animation: pulse 1s infinite; }
+        @keyframes pulse { 50% { opacity: 0.4; } }
+
+        /* INSTRUCCIONES */
+        .instr-card { background: rgba(255, 204, 0, 0.1); border: 1px solid var(--warning); padding: 15px; border-radius: 15px; margin-bottom: 15px; width: 100%; min-height: 85px; text-align: left; }
+        .instr-header { font-size: 0.6rem; color: var(--warning); font-weight: bold; text-transform: uppercase; margin-bottom: 5px; }
+        #instr-text { font-size: 0.9rem; color: #fff; line-height: 1.4; font-weight: 500; }
+    </style>
+</head>
+<body>
+
+    <div id="splash-screen">
+        <img src="logo.png" alt="Vindex" class="splash-logo">
+        <div class="splash-text">SISTEMA INICIANDO</div>
+    </div>
+
+    <div id="scr-login" class="app-container">
+        <div class="padding-box">
+            <img src="logo.png" alt="Vindex" class="app-logo">
+            <h2 style="margin-bottom: 15px; font-weight: 500;">Acceso Seguro</h2>
+            <form id="login-form" style="width: 100%;">
+                <input type="text" id="username" placeholder="Usuario" required>
+                <input type="password" id="password" placeholder="Contraseña" required>
+                <button type="submit" class="btn-main" style="margin-top: 10px;">ENTRAR AL BÚNKER</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="scr-auth" class="app-container hidden">
+        <div class="padding-box">
+            <img src="logo.png" alt="Vindex" style="width: 70px; margin-bottom: 15px;">
+            <h3 style="font-weight: 400; margin-bottom: 5px;">Protocolo Activo</h3>
+            <p style="font-size: 0.75rem; color: var(--gray); margin-bottom: 20px; text-align: center;">¿Qué tipo de autoridad te detuvo?</p>
+            <div class="menu-opt" onclick="initInterface('Tránsito')">👮   Tránsito CDMX</div>
+            <div class="menu-opt" onclick="initInterface('Preventiva')">🛡️   Policía Preventiva</div>
+            <div class="menu-opt" onclick="initInterface('Guardia Nacional')">🇲🇽   Guardia Nacional</div>
+            <div class="menu-opt" onclick="initInterface('Judiciales')">🚔   Judiciales / PDI</div>
+            <button class="btn-main" style="background:rgba(255, 204, 0, 0.1); color:var(--warning); border:1px solid var(--warning); margin-top:15px; font-size:0.7rem;" onclick="initInterface('Mapa Riesgo')">🗺️ VER MAPA DE RIESGO</button>
+        </div>
+    </div>
+
+    <div id="scr-dash" class="app-container hidden">
+        <div id="map"></div>
+        <div class="v-glow" id="v-glow"></div>
+        <div class="padding-box">
+            <div class="rec-ui" id="rec-ui"><div class="rec-dot"></div><span style="font-size:0.6rem; color:var(--danger); font-weight:bold;">GRABANDO GPS Y AUDIO</span></div>
+            <div class="viz" id="v-visual">
+                <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            </div>
+            <div class="instr-card">
+                <div class="instr-header">CO-PILOTO VINDEX:</div>
+                <div id="instr-text">Protocolo listo. Presiona abajo para iniciar.</div>
+            </div>
+            <button id="panic-btn" class="btn-main" onclick="startDefense()">INICIAR DEFENSA</button>
+            <p style="margin-top:20px; font-size:0.6rem; color:var(--gray); cursor:pointer;" onclick="backToMenu()">← VOLVER AL MENÚ</p>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // CONFIGURACIÓN CEREBRO GEMINI [NUEVO]
+        const GEMINI_API_KEY = "AIzaSyCDi2HxfT2Sp2C99it6wKcXQLpXZs48TWU"; 
+        const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + GEMINI_API_KEY;
+
+        let map, marker, recognition, autoridadActual = "";
+
+        // Splash
+        setTimeout(() => {
+            const splash = document.getElementById('splash-screen');
+            splash.style.opacity = '0';
+            setTimeout(() => splash.classList.add('splash-hidden'), 600);
+        }, 2500);
+
+        // Login
+        document.getElementById('login-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            if(document.getElementById('username').value === "fundador") show('scr-auth');
+        });
+
+        // IA Brain Multijurisdiccional
+        async function consultarAbogadoIA(textoOficial, tipoAutoridad) {
+            const basesLegales = {
+                'Tránsito': 'Facultades limitadas a vialidad. No pueden revisar el interior sin causa penal.',
+                'Preventiva': 'Seguridad pública. Requieren sospecha razonable para inspección.',
+                'Guardia Nacional': 'Jurisdicción federal. Facultades de inspección en zonas federales.',
+                'Judiciales': 'Investigación de delitos. Deben portar orden judicial o actuar en flagrancia.'
+            };
+            const info = basesLegales[tipoAutoridad] || 'Autoridad general.';
+            const systemPrompt = `Eres VINDEX IA, abogado defensor en México. Analiza si un oficial de ${tipoAutoridad} es ilegal o grosero. CONTEXTO: ${info}. Usa Art. 16 Const. Sé breve (máx 12 palabras). Dicta qué decir al usuario.`;
+            
+            try {
+                const response = await fetch(GEMINI_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: `${systemPrompt}\n\nOficial dice: "${textoOficial}"` }] }] })
+                });
+                const data = await response.json();
+                document.getElementById('instr-text').innerText = data.candidates[0].content.parts[0].text;
+            } catch (e) { console.error(e); }
+        }
+
+        function initInterface(mode) {
+            autoridadActual = mode;
+            show('scr-dash');
+            const isRisk = (mode === 'Mapa Riesgo');
+            document.getElementById('panic-btn').classList.toggle('hidden', isRisk);
+            document.getElementById('v-visual').style.display = 'none';
+            document.getElementById('v-glow').style.display = 'none';
+            initMap(isRisk);
+        }
+
+        function show(id) { document.querySelectorAll('.app-container').forEach(c => c.classList.add('hidden')); document.getElementById(id).classList.remove('hidden'); }
+
+        function backToMenu() {
+            if (recognition) recognition.stop();
+            document.getElementById('panic-btn').innerText = "INICIAR DEFENSA";
+            document.getElementById('panic-btn').style.background = "var(--accent)";
+            document.getElementById('rec-ui').style.opacity = "0";
+            document.getElementById('v-visual').style.display = 'none';
+            document.getElementById('v-glow').style.display = "none";
+            document.getElementById('instr-text').innerText = "Protocolo listo. Presiona abajo para iniciar.";
+            show('scr-auth');
+        }
+
+        function initMap(withPoints) {
+            if (!map) {
+                map = L.map('map', {zoomControl: false}).setView([19.4326, -99.1332], 12);
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+            }
+            navigator.geolocation.getCurrentPosition(pos => {
+                map.setView([pos.coords.latitude, pos.coords.longitude], 15);
+                if (marker) marker.remove();
+                marker = L.marker([pos.coords.latitude, pos.coords.longitude]).addTo(map);
+            });
+        }
+
+        function startDefense() {
+            document.getElementById('panic-btn').innerText = "VINDEX MONITORIZANDO";
+            document.getElementById('panic-btn').style.background = "rgba(255,255,255,0.05)";
+            document.getElementById('rec-ui').style.opacity = "1";
+            document.getElementById('v-visual').style.display = 'flex';
+            document.getElementById('v-glow').style.display = 'block';
+            document.getElementById('instr-text').innerText = "Escuchando oficial...";
+            startListening();
+        }
+
+        function startListening() {
+            if (!('webkitSpeechRecognition' in window)) return;
+            recognition = new webkitSpeechRecognition();
+            recognition.lang = 'es-MX';
+            recognition.continuous = true;
+            recognition.onresult = (event) => {
+                const text = event.results[event.results.length - 1][0].transcript;
+                consultarAbogadoIA(text, autoridadActual); 
+            };
+            recognition.start();
+        }
+    </script>
+</body>
+</html>
