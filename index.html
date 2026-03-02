@@ -3,36 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Vindex - Escudo Legal</title>
+    <title>Vindex - Tu Escudo Legal</title>
     <link rel="apple-touch-icon" href="logo.png">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         :root { --bg: #000; --accent: #00a3ff; --warning: #fc0; --text: #fff; }
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        
+        /* FONDO NEGRO ABSOLUTO */
         body, html { background-color: #000 !important; color: #fff; font-family: -apple-system, sans-serif; height: 100vh; overflow: hidden; display: flex; justify-content: center; align-items: center; }
+        
+        /* FIX INTERFAZ AMONTONADA */
         .hidden { display: none !important; }
+
         .container { background: #000; border-radius: 30px; border: 1px solid rgba(255,255,255,0.15); width: 92%; max-width: 360px; overflow: hidden; position: relative; }
-        #map { width: 100%; height: 170px; border-bottom: 1px solid var(--accent); }
+        #map { width: 100%; height: 175px; border-bottom: 1px solid var(--accent); }
         .padding { padding: 25px; display: flex; flex-direction: column; align-items: center; }
+        
+        input { width: 100%; padding: 16px; margin-bottom: 12px; border-radius: 12px; background: #111; border: 1px solid #333; color: #fff; outline: none; font-size: 16px; }
         .btn-main { width: 100%; padding: 16px; background: var(--accent); border: none; border-radius: 12px; color: #fff; font-weight: bold; cursor: pointer; }
         
-        /* CAJA DE INSTRUCIONES CON ESCÁNER */
-        .instr { background: rgba(255, 204, 0, 0.05); border: 1px solid var(--warning); padding: 15px; border-radius: 15px; margin-bottom: 15px; width: 100%; min-height: 100px; text-align: left; overflow-y: auto; max-height: 150px; }
-        #debug-log { font-family: monospace; font-size: 0.6rem; color: #888; margin-top: 8px; border-top: 1px dashed #444; padding-top: 5px; }
-        
+        /* ANIMACIÓN GEMINI */
         .viz { display: flex; gap: 4px; height: 30px; align-items: center; margin-bottom: 15px; display: none; }
         .bar { width: 3px; height: 6px; background: var(--accent); animation: wave 0.8s infinite alternate; }
         @keyframes wave { 100% { height: 30px; } }
+        
+        .instr { background: rgba(255, 204, 0, 0.05); border: 1px solid var(--warning); padding: 15px; border-radius: 15px; margin-bottom: 15px; width: 100%; min-height: 100px; text-align: left; }
+        #debug { font-family: monospace; font-size: 0.65rem; color: #888; margin-top: 8px; border-top: 1px dashed #444; padding-top: 5px; }
     </style>
 </head>
 <body>
+
     <div id="splash" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#000; z-index:9999; display:flex; justify-content:center; align-items:center;"><img src="logo.png" style="width:180px;"></div>
 
     <div id="scr-login" class="container">
         <div class="padding">
             <img src="logo.png" style="width:140px; margin-bottom:20px;">
-            <input type="text" id="user" placeholder="Usuario" style="width:100%; padding:15px; margin-bottom:10px; border-radius:10px; background:#111; border:1px solid #333; color:#fff;">
-            <input type="password" id="pass" placeholder="Contraseña" style="width:100%; padding:15px; margin-bottom:15px; border-radius:10px; background:#111; border:1px solid #333; color:#fff;">
+            <input type="text" id="user" placeholder="Usuario" autocomplete="off">
+            <input type="password" id="pass" placeholder="Contraseña">
             <button onclick="checkLogin()" class="btn-main">ENTRAR AL BÚNKER</button>
         </div>
     </div>
@@ -42,20 +50,20 @@
         <div class="padding">
             <div class="viz" id="v-viz"><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
             <div class="instr">
-                <div id="i-text" style="font-size: 0.9rem; font-weight: bold;">ESPERANDO PROTOCOLO...</div>
-                <div id="debug-log">Escáner: Listo para diagnóstico.</div>
+                <div id="i-text" style="font-size: 0.9rem; font-weight: bold;">SISTEMA LISTO</div>
+                <div id="debug">Escáner: Esperando señal...</div>
             </div>
             <button id="p-btn" class="btn-main" onclick="startDef()">INICIAR DEFENSA</button>
-            <p style="margin-top:15px; font-size:0.6rem; color:#666;" onclick="location.reload()">REINICIAR SISTEMA</p>
+            <p style="margin-top:15px; font-size:0.6rem; color:#666;" onclick="location.reload()">REINICIAR APP</p>
         </div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // --- LLAVE CODIFICADA ENIGMA ---
+        // --- PROTOCOLO ENIGMA (Base64) ---
         const _e = "QUl6YVN5QVQybF94OVRSbU9rc1kxR0VmbERHb0dBWjlxeXZJM25J"; 
-        // USAMOS V1BETA PARA EVITAR EL 404 DE LA V1
-        const ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + atob(_e);
+        // FIX: Cambiamos a v1beta para eliminar el error 404 de raíz
+        const URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + atob(_e);
 
         let map, recognition;
         setTimeout(() => document.getElementById('splash').style.display='none', 2000);
@@ -69,39 +77,37 @@
         }
 
         async function aiAsk(speech) {
-            const log = document.getElementById('debug-log');
-            log.innerText = "Escaneando respuesta de Google...";
-            
+            const dbg = document.getElementById('debug');
+            dbg.innerText = "Escaneando respuesta...";
             try {
-                const res = await fetch(ENDPOINT, { 
+                const res = await fetch(URL, { 
                     method: "POST", 
                     headers: {"Content-Type":"application/json"}, 
-                    body: JSON.stringify({contents:[{parts:[{text: "Abogado México. Oficial dice: "+speech+". Responde en 10 palabras."}]}]}) 
+                    body: JSON.stringify({contents:[{parts:[{text: "Abogado experto. Oficial dice: "+speech+". Responde en 10 palabras."}]}]}) 
                 });
-                
                 const d = await res.json();
-                
-                // ESCÁNER DE ERRORES DETALLADO
                 if(d.error) {
-                    document.getElementById('i-text').innerText = "⚠️ ERROR DETECTADO";
-                    log.innerText = "Código: " + d.error.code + "\nMensaje: " + d.error.message + "\nStatus: " + d.error.status;
+                    dbg.innerText = "ERROR " + d.error.code + ": " + d.error.message;
                 } else {
                     document.getElementById('i-text').innerText = d.candidates[0].content.parts[0].text;
-                    log.innerText = "Escaneo exitoso. IA Conectada.";
+                    dbg.innerText = "Conexión exitosa.";
                 }
-            } catch(e) { 
-                document.getElementById('i-text').innerText = "❌ ERROR DE RED";
-                log.innerText = e.message;
-            }
+            } catch(e) { dbg.innerText = "Error de Red: " + e.message; }
         }
 
         function startDef() {
+            document.getElementById('p-btn').innerText = "VINDEX ESCUCHANDO...";
             document.getElementById('v-viz').style.display='flex';
             initMap();
             const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if(!Speech) return alert("Usa Safari en iPhone.");
             recognition = new Speech();
             recognition.lang = 'es-MX';
-            recognition.onresult = (e) => aiAsk(e.results[e.results.length-1][0].transcript);
+            recognition.onresult = (e) => {
+                const s = e.results[e.results.length-1][0].transcript;
+                document.getElementById('i-text').innerText = "Analizando...";
+                aiAsk(s);
+            }
             recognition.start();
         }
     </script>
